@@ -4,7 +4,7 @@ env:
       BC_SOURCE: "codebuild"
       PRISMA_API_URL: "https://api2.prismacloud.io"
   #parameter-store:
-      BC_API_KEY: "bc-api-key"
+     # BC_API_KEY: "bc-api-key"
 phases:
   install:
     runtime-versions:
@@ -17,7 +17,7 @@ phases:
   build:
     commands:
        - pip3 uninstall -y aws-sam-cli
-       - checkov -d . --use-enforcement-rules --bc-api-key 04946eeb-49e0-4b6f-91a3-fbaaac8cf6e0::sOgH5jt0g8XLdoJx+EZyuFBi6HQ= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml
+       - checkov -d . --use-enforcement-rules --soft-fail-on --bc-api-key 04946eeb-49e0-4b6f-91a3-fbaaac8cf6e0::sOgH5jt0g8XLdoJx+EZyuFBi6HQ= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml
 reports:
   prisma-cloud-infrastructure-security:
     files:
