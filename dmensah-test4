@@ -1,0 +1,54 @@
+version: 0.2
+
+env:
+  variables:
+    BC_SOURCE: "codebuild"
+    PRISMA_API_URL: "https://api3.prismacloud.io"
+    ImageName: "simple-docker-service"   # change this to your repo name
+    AWS_DEFAULT_REGION: "us-east-1"      # set to your region
+    AccountId: "037032793534"            # set to your AWS account ID
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - pip3 install checkov
+      - echo "Installing codebuild-extras..."
+      - curl -fsSL https://raw.githubusercontent.com/bridgecrewio/aws-codebuild-extras/master/install >> extras.sh
+      - . ./extras.sh
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+  build:
+    commands:
+      - echo "Running Checkov scan..."
+      - checkov -d . \
+          --bc-api-key 4896ad9c-5936-498c-ad50-eea4ce1748bc::0lrjN+xmB1ObcelKo/7IIgVkLFE= \
+          --repo-id "$AccountId/$CODEBUILD_PROJECT" \
+          --branch $CODEBUILD_GIT_BRANCH \
+          -o cli -o junitxml \
+          --output-file-path console,test_results.xml
+
+      - echo "===== DEBUG: Current working directory ====="
+      - pwd
+      - echo "===== DEBUG: Listing files in current directory ====="
+      - ls -alh
+      - echo "===== DEBUG: Listing all files recursively ====="
+      - ls -R .
+
+      - echo "Building Docker image..."
+      # if your Dockerfile is in root, leave as-is; if in a subfolder, update path
+      - docker build -t $ImageName -f Dockerfile .
+
+      - echo "Tagging Docker image..."
+      - docker tag $ImageName:latest $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+      - echo "Pushing Docker image to ECR..."
+      - docker push $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+reports:
+  prisma-cloud-infrastructure-security:
+    files:
+      - test_results.xml
+    discard-paths: yes
+    file-format: JunitXml
