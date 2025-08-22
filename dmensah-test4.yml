@@ -19,6 +19,11 @@ phases:
       - . ./extras.sh
       - echo "Logging in to Amazon ECR..."
       - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo "Ensuring ECR repository exists..."
+      - |
+        aws ecr describe-repositories --repository-names $ImageName --region $AWS_DEFAULT_REGION || \
+        aws ecr create-repository --repository-name $ImageName --region $AWS_DEFAULT_REGION
+      
   build:
     commands:
       - echo "Running Checkov scan..."
