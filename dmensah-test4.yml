@@ -22,14 +22,7 @@ phases:
   build:
     commands:
       - echo "Running Checkov scan..."
-      - checkov -d . \
-          --bc-api-key 4896ad9c-5936-498c-ad50-eea4ce1748bc::0lrjN+xmB1ObcelKo/7IIgVkLFE= \
-          --repo-id "$AccountId/$CODEBUILD_PROJECT" \
-          --branch $CODEBUILD_GIT_BRANCH \
-          -o cli -o junitxml \
-          --output-file-path console,test_results.xml
-
-      - echo "Current working directory"
+      - checkov -d . --bc-api-key 4896ad9c-5936-498c-ad50-eea4ce1748bc::0lrjN+xmB1ObcelKo/7IIgVkLFE= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml      - echo "Current working directory"
       - pwd
       - echo "Listing files in current directory"
       - ls -alh
