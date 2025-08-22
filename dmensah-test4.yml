@@ -35,9 +35,9 @@ phases:
       - git remote -v || echo "Git not initialized here"
       - echo "Current Branch:"
       - git branch -a || echo "Not a git repo"
-      - echo "Source Version: $CODEBUILD_SOURCE_VERSION"
-      - echo "Resolved Source Version: $CODEBUILD_RESOLVED_SOURCE_VERSION"
-      - echo "Source Repo URL: $CODEBUILD_SOURCE_REPO_URL"
+      - echo "Source Version $CODEBUILD_SOURCE_VERSION"
+      - echo "Resolved Source Version $CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - echo "Source Repo URL $CODEBUILD_SOURCE_REPO_URL"
       - echo "Confirming Source Directory:"
       - ls -R | head -50      
 
