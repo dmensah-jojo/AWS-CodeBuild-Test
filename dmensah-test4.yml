@@ -29,11 +29,11 @@ phases:
           -o cli -o junitxml \
           --output-file-path console,test_results.xml
 
-      - echo "===== DEBUG: Current working directory ====="
+      - echo "Current working directory"
       - pwd
-      - echo "===== DEBUG: Listing files in current directory ====="
+      - echo "Listing files in current directory"
       - ls -alh
-      - echo "===== DEBUG: Listing all files recursively ====="
+      - echo "Listing all files recursively"
       - ls -R .
 
       - echo "Building Docker image..."
