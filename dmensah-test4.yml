@@ -28,7 +28,18 @@ phases:
       - echo "Listing files in current directory"
       - ls -alh
       - echo "Listing all files recursively"
-      - ls -R .
+     # - ls -R .
+      - echo "Building Docker image..."
+      - ls -la   # 👈 sanity check to confirm Dockerfile is visible in CodeBuild
+      - cat Dockerfile | head -n 20  # 👈 print first lines to confirm it’s picked up
+      - git remote -v || echo "Git not initialized here"
+      - echo "Current Branch:"
+      - git branch -a || echo "Not a git repo"
+      - echo "Source Version: $CODEBUILD_SOURCE_VERSION"
+      - echo "Resolved Source Version: $CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - echo "Source Repo URL: $CODEBUILD_SOURCE_REPO_URL"
+      - echo "Confirming Source Directory:"
+      - ls -R | head -50      
 
       - echo "Building Docker image..."
       # if your Dockerfile is in root, leave as-is; if in a subfolder, update path
