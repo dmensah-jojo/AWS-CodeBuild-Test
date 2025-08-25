@@ -1,0 +1,83 @@
+version: 0.2
+
+env:
+  variables:
+    BC_SOURCE: "codebuild"
+    PRISMA_API_URL: "xxxxxxxxxxxxxxxxxxx"
+    ImageName: "xxxxxxxxxxxxxxxxxxxxxxx"   # change this to your repo name
+    AWS_DEFAULT_REGION: "us-east-1"      # set to your region
+    AccountId: "xxxxxxxxxxxx"            # set to your AWS account ID
+    TL_CONSOLE: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    TL_USER: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+    TL_PASS: "xxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - pip3 install checkov
+      - echo "Installing codebuild-extras..."
+      - curl -fsSL https://raw.githubusercontent.com/bridgecrewio/aws-codebuild-extras/master/install >> extras.sh
+      - . ./extras.sh
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo "Ensuring ECR repository exists..."
+      - |
+        aws ecr describe-repositories --repository-names $ImageName --region $AWS_DEFAULT_REGION || \
+        aws ecr create-repository --repository-name $ImageName --region $AWS_DEFAULT_REGION
+      
+  build:
+    commands:
+      - echo "Running Checkov scan..."
+      - checkov -d . --soft-fail --bc-api-key $PRISMA_ACCESS_KEY::$PRISMA_SECRET_KEY --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml    
+
+      - echo "Creating Dockerfile with Amazon Linux 2023 base..."
+      - |
+        cat > Dockerfile <<'EOF'
+        FROM public.ecr.aws/amazonlinux/amazonlinux:2023
+
+        RUN yum update -y && \
+            yum install -y python3 pip git tar gzip && \
+            yum clean all
+
+        WORKDIR /app
+        COPY . /app
+
+        CMD ["python3", "--version"]
+        EOF
+
+      - echo "Building Docker image with Amazon Linux 2023..."
+      - docker build -t $ImageName -f Dockerfile .
+
+      - echo "Tagging Docker image..."
+      - docker tag $ImageName:latest $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+      - echo "Checking Twistcli version..."
+      - |
+        if [ -f "./twistcli" ]; then
+          TCLI_VERSION=$(./twistcli --version 2>/dev/null | awk '{print $NF}')
+        else
+          TCLI_VERSION="none"
+        fi
+        CONSOLE_VERSION=$(curl -sk -u "$TL_USER:$TL_PASS" $TL_CONSOLE/api/v1/version | tr -d '"')
+        echo "TCLI_VERSION = $TCLI_VERSION"
+        echo "CONSOLE_VERSION = $CONSOLE_VERSION"
+        if [ "$TCLI_VERSION" != "$CONSOLE_VERSION" ]; then
+          echo "Downloading latest twistcli..."
+          curl -sk -u $TL_USER:$TL_PASS --output ./twistcli $TL_CONSOLE/api/v1/util/twistcli
+          chmod +x ./twistcli
+        fi
+
+      - echo "Scanning Docker image with Twistcli..."
+      - ./twistcli images scan --address $TL_CONSOLE -u $TL_USER -p $TL_PASS --details $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+      - echo "Pushing Docker image to ECR..."
+      - docker push $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+reports:
+  prisma-cloud-infrastructure-security:
+    files:
+      - test_results.xml
+    discard-paths: yes
+    file-format: Junit
