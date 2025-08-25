@@ -30,7 +30,7 @@ phases:
   build:
     commands:
       - echo "Running Checkov scan..."
-      - checkov -d . --soft-fail --bc-api-key 4896ad9c-5936-498c-ad50-eea4ce1748bc::0lrjN+xmB1ObcelKo/7IIgVkLFE= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml    
+      - checkov -d . --soft-fail --bc-api-key 40f3eff2-9703-4745-9c5b-5292e0c0a8a2::Yn2dQKU2aXpLhYx/rLUnyOtOSfU= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml    
 
       - echo "Creating Dockerfile with Amazon Linux 2023 base..."
       - |
