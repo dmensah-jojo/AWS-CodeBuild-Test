@@ -35,7 +35,7 @@ phases:
       - echo "Creating Dockerfile with Amazon Linux 2023 base..."
       - |
         cat > Dockerfile <<'EOF'
-        FROM amazonlinux:2023
+        FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
         RUN yum update -y && \
             yum install -y python3 pip git tar gzip && \
