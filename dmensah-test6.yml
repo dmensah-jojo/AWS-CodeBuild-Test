@@ -4,7 +4,7 @@ env:
   variables:
     BC_SOURCE: "codebuild"
     PRISMA_API_URL: "https://api3.prismacloud.io"
-    ImageName: "Amazon Linux 2023 base image"   # change this to your repo name
+    ImageName: "simple-docker-service"   # change this to your repo name
     AWS_DEFAULT_REGION: "us-east-1"      # set to your region
     AccountId: "037032793534"            # set to your AWS account ID
     TL_CONSOLE: "https://us-west1.cloud.twistlock.com/us-3-159214132"
