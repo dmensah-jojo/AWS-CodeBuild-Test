@@ -1,0 +1,87 @@
+version: 0.2
+
+env:
+  variables:
+    BC_SOURCE: "codebuild"
+    PRISMA_API_URL: "https://api3.prismacloud.io"
+    ImageName: "simple-docker-service"   # change this to your repo name
+    AWS_DEFAULT_REGION: "us-east-1"      # set to your region
+    AccountId: "037032793534"            # set to your AWS account ID
+    TL_CONSOLE: "https://us-west1.cloud.twistlock.com/us-3-159214132"
+    TL_USER: "4896ad9c-5936-498c-ad50-eea4ce1748bc"
+    TL_PASS: "0lrjN+xmB1ObcelKo/7IIgVkLFE="
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.13
+    commands:
+      - pip3 install checkov
+      - echo "Installing codebuild-extras..."
+      - curl -fsSL https://raw.githubusercontent.com/bridgecrewio/aws-codebuild-extras/master/install >> extras.sh
+      - . ./extras.sh
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - echo "Ensuring ECR repository exists..."
+      - |
+        aws ecr describe-repositories --repository-names $ImageName --region $AWS_DEFAULT_REGION || \
+        aws ecr create-repository --repository-name $ImageName --region $AWS_DEFAULT_REGION
+      
+  build:
+    commands:
+      - echo "Running Checkov scan..."
+      - checkov -d . --bc-api-key 4896ad9c-5936-498c-ad50-eea4ce1748bc::0lrjN+xmB1ObcelKo/7IIgVkLFE= --repo-id $CODEBUILD_ACCOUNT_ID/$CODEBUILD_PROJECT --branch $CODEBUILD_GIT_BRANCH -o cli -o junitxml --output-file-path console,test_results.xml    
+
+      - echo "Current working directory"
+      - pwd
+      - echo "Listing files in current directory"
+      - ls -alh
+      - echo "Listing all files recursively (truncated)"
+      - ls -R | head -50   
+
+      - echo "Building Docker image..."
+      - ls -la   # sanity check to confirm Dockerfile is visible in CodeBuild
+      - cat Dockerfile | head -n 20  # print first lines to confirm it’s picked up
+      - git remote -v || echo "Git not initialized here"
+      - echo "Current Branch:"
+      - git branch -a || echo "Not a git repo"
+      - echo "Source Version $CODEBUILD_SOURCE_VERSION"
+      - echo "Resolved Source Version $CODEBUILD_RESOLVED_SOURCE_VERSION"
+      - echo "Source Repo URL $CODEBUILD_SOURCE_REPO_URL"
+      - echo "Confirming Source Directory:"
+      - ls -R | head -50     
+
+      - echo "Building Docker image..."
+      - docker build -t $ImageName -f Dockerfile .
+
+      - echo "Tagging Docker image..."
+      - docker tag $ImageName:latest $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+      - echo "Checking Twistcli version..."
+      - |
+        if [ -f "./twistcli" ]; then
+          TCLI_VERSION=$(./twistcli --version 2>/dev/null | awk '{print $NF}')
+        else
+          TCLI_VERSION="none"
+        fi
+        CONSOLE_VERSION=$(curl -sk -u "$TL_USER:$TL_PASS" $TL_CONSOLE/api/v1/version | tr -d '"')
+        echo "TCLI_VERSION = $TCLI_VERSION"
+        echo "CONSOLE_VERSION = $CONSOLE_VERSION"
+        if [ "$TCLI_VERSION" != "$CONSOLE_VERSION" ]; then
+          echo "Downloading latest twistcli..."
+          curl -sk -u $TL_USER:$TL_PASS --output ./twistcli $TL_CONSOLE/api/v1/util/twistcli
+          chmod +x ./twistcli
+        fi
+
+      - echo "Scanning Docker image with Twistcli..."
+      - ./twistcli images scan --address $TL_CONSOLE -u $TL_USER -p $TL_PASS --details $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+      - echo "Pushing Docker image to ECR..."
+      - docker push $AccountId.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ImageName:latest
+
+reports:
+  prisma-cloud-infrastructure-security:
+    files:
+      - test_results.xml
+    discard-paths: yes
+    file-format: JunitXml
