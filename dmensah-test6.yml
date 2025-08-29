@@ -8,8 +8,8 @@ env:
     AWS_DEFAULT_REGION: "us-east-1"      # set to your region
     AccountId: "037032793534"            # set to your AWS account ID
     TL_CONSOLE: "https://us-west1.cloud.twistlock.com/us-3-159214132"
-    TL_USER: "40f3eff2-9703-4745-9c5b-5292e0c0a8a2"
-    TL_PASS: "Yn2dQKU2aXpLhYx/rLUnyOtOSfU="
+    TL_USER: "b80f1585-ae76-4a0b-8009-d317d98d66f6"
+    TL_PASS: "mIVMW0skvqSXfX86DJVIBKp1Yzo="
 
 phases:
   install:
