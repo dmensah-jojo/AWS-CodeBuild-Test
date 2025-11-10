@@ -1,0 +1,35 @@
+name: Prisma Cloud Scan
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Install Checkov (Prisma Cloud Code Security)
+        run: pip install checkov
+
+      - name: Scan Repo with Prisma Cloud
+        env:
+          PRISMA_API_URL: ${{ secrets.PRISMA_API_URL }}
+          PRISMA_API_KEY: ${{ secrets.PRISMA_API_KEY }}
+        run: |
+          checkov \
+            --prisma-api-url "$PRISMA_API_URL" \
+            --bc-api-key "$PRISMA_API_KEY" \
+            -d . \
+            --repo-id "${{ github.repository }}" \
+            --branch "${{ github.ref_name }}" \
+            --compact --quiet --soft-fail
